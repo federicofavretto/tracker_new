@@ -89,6 +89,24 @@ async function maybeCleanupOldEvents() {
   console.log("Cleanup done");
 }
 
+// CORS per permettere le chiamate dal tuo shop
+app.use((req, res, next) => {
+  // consenti tutti gli origin; se vuoi puoi mettere il dominio specifico del tuo shop
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    // rispondi subito ai preflight
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
 // ───────────────────────────────────────
 // 3. Middleware
 // ───────────────────────────────────────
