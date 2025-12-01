@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <title>Tracker Dashboard</title>
+</head>
+<body>
+  <h1>Dashboard</h1>
+
+  <h2>Summary</h2>
+  <pre id="summary"></pre>
+
+  <h2>Ultimi eventi</h2>
+  <pre id="events"></pre>
+
+  <script>
+    async function loadSummary() {
+      const res = await fetch("/api/summary");
+      const data = await res.json();
+      document.getElementById("summary").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function loadEvents() {
+      const res = await fetch("/api/events?limit=20");
+      const data = await res.json();
+      document.getElementById("events").textContent = JSON.stringify(data, null, 2);
+    }
+
+    loadSummary();
+    loadEvents();
+  </script>
+</body>
+</html>
