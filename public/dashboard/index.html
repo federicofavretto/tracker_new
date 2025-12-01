@@ -2,32 +2,694 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Tracker Dashboard</title>
+  <title>Analytics – La Perle du Caviar</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050814;
+      --bg-card: #0c1020;
+      --bg-card-soft: #13182a;
+      --border-soft: #1f2438;
+      --text-main: #f5f5ff;
+      --text-soft: #a9b0c8;
+      --accent: #5cc9ff;
+      --accent-soft: rgba(92,201,255,0.12);
+      --danger: #ff6b6b;
+      --radius-xl: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top,#111633 0,var(--bg) 55%);
+      color: var(--text-main);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0 0 18px;
+    }
+    .sub {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 22px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px,1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .card {
+      background: linear-gradient(145deg,var(--bg-card) 0,var(--bg-card-soft) 100%);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-soft);
+      padding: 14px 16px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+    }
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-soft);
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .card-sub {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 24px 0 10px;
+    }
+    .funnel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .funnel-step {
+      position: relative;
+      padding: 12px 14px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-soft);
+      background: linear-gradient(145deg,#111628,#090d1a);
+    }
+    .funnel-step-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .funnel-step-value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .funnel-step-cr {
+      font-size: 11px;
+      color: var(--text-soft);
+      margin-top: 2px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    th, td {
+      padding: 7px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      text-align: left;
+    }
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-soft);
+    }
+    tr:hover td {
+      background: rgba(255,255,255,0.03);
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .tag-green {
+      background: rgba(0,220,130,0.13);
+      color: #7cf2c2;
+    }
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .select, .input {
+      background: #050814;
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+    .input { min-width: 200px; }
+    .muted {
+      color: var(--text-soft);
+      font-size: 12px;
+    }
+    @media (max-width: 640px) {
+      body { padding: 16px; }
+    }
+  </style>
 </head>
 <body>
-  <h1>Dashboard</h1>
+  <h1>Analytics – La Perle du Caviar</h1>
+  <div class="sub">Ultimi eventi registrati (solo dati interni, nessun cookie di terze parti).</div>
 
-  <h2>Summary</h2>
-  <pre id="summary"></pre>
+  <!-- KPI principali -->
+  <div id="overview" class="grid"></div>
 
-  <h2>Ultimi eventi</h2>
-  <pre id="events"></pre>
+  <!-- Funnel -->
+  <div class="section-title">Funnel principale</div>
+  <div id="funnel" class="funnel"></div>
 
-  <script>
-    async function loadSummary() {
-      const res = await fetch("/api/summary");
-      const data = await res.json();
-      document.getElementById("summary").textContent = JSON.stringify(data, null, 2);
+  <!-- Checkout -->
+  <div class="section-title">Funnel checkout</div>
+  <div id="checkoutSteps" class="grid"></div>
+
+  <!-- Pagine più viste -->
+  <div class="section-title">Pagine più viste</div>
+  <div id="topPages" class="card muted">Nessun dato sufficiente.</div>
+
+  <!-- Fonti di traffico -->
+  <div class="section-title">Fonti di traffico</div>
+  <div class="grid">
+    <div id="trafficSources" class="card muted">Nessun dato referrer disponibile.</div>
+    <div id="utmSources" class="card muted">Nessuna UTM rilevata.</div>
+  </div>
+
+  <!-- Prodotti e media -->
+  <div class="section-title">Prodotti e interazioni media</div>
+  <div class="grid">
+    <div id="productCategories" class="card muted">Nessun dato prodotti.</div>
+    <div id="gramsViews" class="card muted">Nessun dato grammi.</div>
+    <div id="mediaInteractions" class="card muted">Nessuna interazione media.</div>
+  </div>
+
+  <!-- Geo & salute tecnica -->
+  <div class="section-title">Geo & salute tecnica</div>
+  <div class="grid">
+    <div id="geoStats" class="card muted">Nessun dato geografico.</div>
+    <div id="techHealth" class="card muted">Nessun dato tecnico.</div>
+  </div>
+
+  <!-- Eventi recenti -->
+  <div class="section-title">Eventi recenti</div>
+
+  <div class="filters">
+    <label>Periodo:
+      <select id="filterTime" class="select">
+        <option value="7">Ultimi 7 giorni</option>
+        <option value="30">Ultimi 30 giorni</option>
+        <option value="90">Ultimi 3 mesi</option>
+        <option value="180">Ultimi 6 mesi</option>
+        <option value="365">Ultimo anno</option>
+        <option value="all">Tutto</option>
+      </select>
+    </label>
+
+    <label>Tipo:
+      <select id="filterType" class="select">
+        <option value="all">Tutti</option>
+        <option value="pageview">pageview</option>
+        <option value="timeonpage">timeonpage</option>
+        <option value="view_product">view_product</option>
+        <option value="add_to_cart">add_to_cart</option>
+        <option value="purchase">purchase</option>
+        <option value="scroll">scroll</option>
+        <option value="cta_click">cta_click</option>
+      </select>
+    </label>
+
+    <input id="filterText" class="input" placeholder="Cerca in URL / titolo / dettagli" />
+    <span id="rowsInfo" class="muted"></span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Quando</th>
+          <th>Tipo</th>
+          <th>Pagina / URL</th>
+          <th>Dettagli</th>
+        </tr>
+      </thead>
+      <tbody id="eventsTableBody"></tbody>
+    </table>
+  </div>
+
+<script>
+(function () {
+  const overviewEl      = document.getElementById("overview");
+  const funnelEl        = document.getElementById("funnel");
+  const checkoutEl      = document.getElementById("checkoutSteps");
+  const topPagesEl      = document.getElementById("topPages");
+  const trafficEl       = document.getElementById("trafficSources");
+  const utmEl           = document.getElementById("utmSources");
+  const productCatEl    = document.getElementById("productCategories");
+  const gramsEl         = document.getElementById("gramsViews");
+  const mediaEl         = document.getElementById("mediaInteractions");
+  const geoEl           = document.getElementById("geoStats");
+  const techEl          = document.getElementById("techHealth");
+  const tbodyEl         = document.getElementById("eventsTableBody");
+  const filterTimeEl    = document.getElementById("filterTime");
+  const filterTypeEl    = document.getElementById("filterType");
+  const filterTextEl    = document.getElementById("filterText");
+  const rowsInfoEl      = document.getElementById("rowsInfo");
+
+  let ALL_EVENTS = [];
+
+  function fmtNumber(n) {
+    if (!n) return "0";
+    return Number(n).toLocaleString("it-IT");
+  }
+
+  function fmtPercent(x) {
+    if (!x) return "0%";
+    return x.toFixed(1).replace(".", ",") + "%";
+  }
+
+// ------------------ SUMMARY ----------------
+async function loadSummary() {
+  try {
+    // niente ?range=7d, il tuo backend /api/summary non gestisce quel parametro
+    const res = await fetch("/api/summary");
+    if (!res.ok) {
+      console.error("Errore /api/summary", res.status);
+      // mostriamo qualcosa anche in caso di errore
+      overviewEl.innerHTML = `
+        <div class="card">
+          <div class="card-title">Errore summary</div>
+          <div class="card-value">-</div>
+          <div class="card-sub">HTTP ${res.status}</div>
+        </div>
+      `;
+      return;
     }
 
-    async function loadEvents() {
-      const res = await fetch("/api/events?limit=20");
-      const data = await res.json();
-      document.getElementById("events").textContent = JSON.stringify(data, null, 2);
+    const raw = await res.json();
+    // caso 1: API restituisce direttamente i campi (pageviews, ecc.)
+    // caso 2: API restituisce { summary: {...} }
+    const s = raw && raw.summary ? raw.summary : raw;
+
+    // se per qualche motivo s non è un oggetto, evitiamo crash
+    if (!s || typeof s !== "object") {
+      console.error("Formato summary inatteso:", raw);
+      overviewEl.innerHTML = `
+        <div class="card">
+          <div class="card-title">Nessun dato</div>
+          <div class="card-value">0</div>
+          <div class="card-sub">/api/summary ha risposto ma senza campi validi</div>
+        </div>
+      `;
+      return;
     }
 
-    loadSummary();
-    loadEvents();
-  </script>
+    renderOverview(s);
+    renderFunnel(s);
+    renderCheckout(s);
+    renderTopPages(s);
+    renderTraffic(s);
+    renderProductsAndMedia(s);
+    renderGeoAndTech(s);
+
+  } catch (err) {
+    console.error("loadSummary error", err);
+    // fallback visivo, così l’utente non vede la dashboard “vuota”
+    overviewEl.innerHTML = `
+      <div class="card">
+        <div class="card-title">Errore JS</div>
+        <div class="card-value">-</div>
+        <div class="card-sub">${(err && err.message) || "Errore sconosciuto"}</div>
+      </div>
+    `;
+  }
+}
+
+
+
+  function renderOverview(s) {
+    overviewEl.innerHTML = `
+      <div class="card">
+        <div class="card-title">Pageview</div>
+        <div class="card-value">${fmtNumber(s.pageviews)}</div>
+        <div class="card-sub">CR: ${fmtPercent(s.crPageviewToPurchase || 0)} → purchase</div>
+      </div>
+      <div class="card">
+        <div class="card-title">View product</div>
+        <div class="card-value">${fmtNumber(s.productViews)}</div>
+        <div class="card-sub">CR: ${fmtPercent(s.crProductToCart || 0)} → add_to_cart</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Add to cart</div>
+        <div class="card-value">${fmtNumber(s.addToCart)}</div>
+        <div class="card-sub">CR: ${fmtPercent(s.crCartToPurchase || 0)} → purchase</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Purchase</div>
+        <div class="card-value">${fmtNumber(s.purchases)}</div>
+        <div class="card-sub">Sessioni uniche: ${fmtNumber(s.uniqueSessions || 0)}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Carrelli attivi (reali)</div>
+        <div class="card-value">${fmtNumber(s.activeCarts || 0)}</div>
+        <div class="card-sub">Visitatori totali: ${fmtNumber(s.uniqueVisitors || 0)}</div>
+      </div>
+    `;
+  }
+
+  function renderFunnel(s) {
+    funnelEl.innerHTML = `
+      <div class="funnel-step">
+        <div class="funnel-step-title">Pageview</div>
+        <div class="funnel-step-value">${fmtNumber(s.pageviews)}</div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-step-title">View product</div>
+        <div class="funnel-step-value">${fmtNumber(s.productViews)}</div>
+        <div class="funnel-step-cr">CR: ${fmtPercent(s.crProductToCart || 0)} → add_to_cart</div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-step-title">Add to cart</div>
+        <div class="funnel-step-value">${fmtNumber(s.addToCart)}</div>
+        <div class="funnel-step-cr">CR: ${fmtPercent(s.crCartToPurchase || 0)} → purchase</div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-step-title">Purchase</div>
+        <div class="funnel-step-value">${fmtNumber(s.purchases)}</div>
+        <div class="funnel-step-cr">CR: ${fmtPercent(s.crPageviewToPurchase || 0)} da pageview</div>
+      </div>
+    `;
+  }
+
+  function renderCheckout(s) {
+    const cs = s.checkoutSteps || {};
+    checkoutEl.innerHTML = `
+      <div class="card">
+        <div class="card-title">Cart</div>
+        <div class="card-value">${fmtNumber(cs.cart || 0)}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Checkout</div>
+        <div class="card-value">${fmtNumber(cs.checkout || 0)}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Shipping</div>
+        <div class="card-value">${fmtNumber(cs.shipping || 0)}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Payment</div>
+        <div class="card-value">${fmtNumber(cs.payment || 0)}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Thank you</div>
+        <div class="card-value">${fmtNumber(cs.thankyou || 0)}</div>
+      </div>
+    `;
+  }
+
+  function renderTopPages(s) {
+    const pages = s.topPages || [];
+    if (!pages.length) {
+      topPagesEl.classList.add("muted");
+      topPagesEl.innerHTML = "Nessun dato sufficiente.";
+      return;
+    }
+    let html = `<div class="card-title">Top pages (ultimi eventi)</div><table><tbody>`;
+    pages.forEach(p => {
+      html += `<tr><td>${p.path}</td><td style="text-align:right">${fmtNumber(p.count)}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+    topPagesEl.classList.remove("muted");
+    topPagesEl.innerHTML = html;
+  }
+
+  function renderTraffic(s) {
+    const refs = s.topReferrers || [];
+    const utm = s.utmCombos || [];
+
+    if (!refs.length) {
+      trafficEl.classList.add("muted");
+      trafficEl.innerHTML = "Nessun dato referrer disponibile.";
+    } else {
+      let html = `<div class="card-title">Fonti di traffico (referrer)</div><table><tbody>`;
+      refs.forEach(r => {
+        html += `<tr><td>${r.source}</td><td style="text-align:right">${fmtNumber(r.count)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      trafficEl.classList.remove("muted");
+      trafficEl.innerHTML = html;
+    }
+
+    if (!utm.length) {
+      utmEl.classList.add("muted");
+      utmEl.innerHTML = "Nessuna UTM rilevata.";
+    } else {
+      let html = `<div class="card-title">UTM (ultime campagne)</div><table><tbody>`;
+      utm.forEach(u => {
+        html += `<tr><td>source: <b>${u.source}</b> · medium: <b>${u.medium}</b> · campaign: <b>${u.campaign}</b></td><td style="text-align:right">${fmtNumber(u.count)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      utmEl.classList.remove("muted");
+      utmEl.innerHTML = html;
+    }
+  }
+
+  function renderProductsAndMedia(s) {
+    const cat = s.productCategories || {};
+    const grams = s.gramsViews || {};
+    const media = s.mediaInteractions || {};
+
+    // categorie
+    const catEntries = Object.entries(cat);
+    if (!catEntries.length) {
+      productCatEl.classList.add("muted");
+      productCatEl.innerHTML = "Nessun dato prodotti.";
+    } else {
+      let html = `<div class="card-title">Categorie prodotto (view_product)</div><table><tbody>`;
+      catEntries.sort((a,b) => b[1]-a[1]).forEach(([name,val]) => {
+        html += `<tr><td>${name}</td><td style="text-align:right">${fmtNumber(val)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      productCatEl.classList.remove("muted");
+      productCatEl.innerHTML = html;
+    }
+
+    // grammi
+    const gramsEntries = Object.entries(grams);
+    if (!gramsEntries.length) {
+      gramsEl.classList.add("muted");
+      gramsEl.innerHTML = "Nessun dato grammi.";
+    } else {
+      let html = `<div class="card-title">Grammature viste</div><table><tbody>`;
+      gramsEntries.sort((a,b) => Number(a[0]) - Number(b[0])).forEach(([g,val]) => {
+        html += `<tr><td>${g} g</td><td style="text-align:right">${fmtNumber(val)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      gramsEl.classList.remove("muted");
+      gramsEl.innerHTML = html;
+    }
+
+    // media
+    const mediaEntries = Object.entries(media);
+    if (!mediaEntries.length) {
+      mediaEl.classList.add("muted");
+      mediaEl.innerHTML = "Nessuna interazione media.";
+    } else {
+      let html = `<div class="card-title">Interazioni media</div><table><tbody>`;
+      mediaEntries.forEach(([k,val]) => {
+        const [type,action] = k.split(":");
+        html += `<tr><td>${type} · ${action}</td><td style="text-align:right">${fmtNumber(val)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      mediaEl.classList.remove("muted");
+      mediaEl.innerHTML = html;
+    }
+  }
+
+  function renderGeoAndTech(s) {
+    const countries = s.countries || {};
+    const geoEntries = Object.entries(countries);
+
+    if (!geoEntries.length) {
+      geoEl.classList.add("muted");
+      geoEl.innerHTML = "Nessun dato geografico.";
+    } else {
+      let html = `<div class="card-title">Paesi (ultimi eventi)</div><table><tbody>`;
+      geoEntries.sort((a,b) => b[1]-a[1]).forEach(([c,val]) => {
+        html += `<tr><td>${c}</td><td style="text-align:right">${fmtNumber(val)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      geoEl.classList.remove("muted");
+      geoEl.innerHTML = html;
+    }
+
+    const perf = s.perfSummary || {};
+    const jsErrors = s.jsErrors || 0;
+    const payErrors = s.paymentErrors || 0;
+
+    let html = `<div class="card-title">Salute tecnica</div><div class="card-sub">Errori JS: ${fmtNumber(jsErrors)} · Errori pagamento: ${fmtNumber(payErrors)}</div>`;
+    if (perf.samples) {
+      html += `<div class="card-sub" style="margin-top:8px;">
+        LCP medio: ${perf.avgLcp ? perf.avgLcp.toFixed(0) + " ms" : "-"} ·
+        FCP medio: ${perf.avgFcp ? perf.avgFcp.toFixed(0) + " ms" : "-"} ·
+        TTFB medio: ${perf.avgTtfb ? perf.avgTtfb.toFixed(0) + " ms" : "-"}
+      </div>`;
+    }
+    techEl.classList.remove("muted");
+    techEl.innerHTML = html;
+  }
+
+  // ------------------ EVENTI RECENTI ------------------
+
+  function rangeParamFromFilter() {
+    const v = filterTimeEl ? filterTimeEl.value : "7";
+    if (v === "all") return null;
+    if (v === "7")   return "7d";
+    if (v === "30")  return "30d";
+    if (v === "90")  return "90d";
+    if (v === "180") return "180d";
+    if (v === "365") return "365d";
+    return null;
+  }
+
+async function loadEvents() {
+  try {
+    const range = rangeParamFromFilter();
+    let url = "/api/events?limit=500";
+    if (range) url += "&range=" + encodeURIComponent(range);
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error("Errore /api/events", res.status);
+      return;
+    }
+
+    const data = await res.json();
+    // compatibile con entrambi i casi:
+    //  - [ {event}, ... ]
+    //  - { events: [ ... ] }
+    ALL_EVENTS = Array.isArray(data) ? data : (data.events || []);
+
+    renderEvents();
+  } catch (err) {
+    console.error("loadEvents error", err);
+  }
+}
+
+
+  function describeEvent(p) {
+    if (!p || !p.type) return "";
+    switch (p.type) {
+      case "pageview":
+        return p.title || "";
+      case "timeonpage":
+        if (typeof p.millis === "number") {
+          return "Tempo sulla pagina: " + (p.millis / 1000).toFixed(1) + " s";
+        }
+        return "";
+      case "view_product":
+        return (p.productTitle || "") + (p.grams ? ` · ${p.grams} g` : "");
+      case "add_to_cart": {
+        const qty = p.quantity || 1;
+
+        if (p.productTitle || p.variantTitle || p.grams) {
+          const parts = [];
+
+          if (p.productTitle) parts.push(p.productTitle);
+
+          if (p.variantTitle) {
+            // es. "50 g" o "50g"
+            parts.push(p.variantTitle);
+          } else if (p.grams) {
+            parts.push(p.grams + " g");
+          }
+
+          const label = parts.join(" – ");
+          return label + " x" + qty;
+        }
+
+        // fallback
+        return "Variant " + (p.variantId || "") + " x" + qty;
+      }
+      case "cart_state":
+        return (p.items && p.items.length ? `${p.items.length} righe in carrello` : "Carrello vuoto");
+      case "checkout_step":
+        return `Step: ${p.step || ""} (#${p.stepIndex || ""})`;
+      case "media_interaction":
+        return `${p.mediaType || "media"} · ${p.action || ""}`;
+      case "js_error":
+        return p.message || "";
+      default:
+        return "";
+    }
+  }
+
+  function renderEvents() {
+    const typeFilter = filterTypeEl ? filterTypeEl.value : "all";
+    const textFilter = filterTextEl ? filterTextEl.value.toLowerCase() : "";
+
+    const rows = [];
+    ALL_EVENTS.forEach(ev => {
+      const p = ev.payload || {};
+      const type = p.type || "unknown";
+      const when = ev.receivedAt ? new Date(ev.receivedAt) : null;
+      const url = p.path || p.url || "";
+      const details = describeEvent(p);
+
+      if (typeFilter !== "all" && type !== typeFilter) return;
+      const blob = (url + " " + (details || "")).toLowerCase();
+      if (textFilter && !blob.includes(textFilter)) return;
+
+      rows.push({ when, type, url, details });
+    });
+
+    tbodyEl.innerHTML = "";
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      const tdWhen = document.createElement("td");
+      const tdType = document.createElement("td");
+      const tdUrl  = document.createElement("td");
+      const tdDet  = document.createElement("td");
+
+      tdWhen.textContent = r.when ? r.when.toLocaleString("it-IT") : "";
+      tdType.textContent = r.type;
+      tdUrl.textContent  = r.url;
+      tdDet.textContent  = r.details;
+
+      tr.appendChild(tdWhen);
+      tr.appendChild(tdType);
+      tr.appendChild(tdUrl);
+      tr.appendChild(tdDet);
+      tbodyEl.appendChild(tr);
+    });
+
+    rowsInfoEl.textContent = rows.length
+      ? `${rows.length} eventi mostrati`
+      : "0 eventi mostrati";
+  }
+
+  // ------------------ INIT ------------------
+  if (filterTimeEl) {
+    filterTimeEl.addEventListener("change", loadEvents);
+  }
+  if (filterTypeEl) {
+    filterTypeEl.addEventListener("change", renderEvents);
+  }
+  if (filterTextEl) {
+    filterTextEl.addEventListener("input", renderEvents);
+  }
+
+
+  loadSummary();
+  loadEvents();
+})();
+</script>
+
 </body>
 </html>
