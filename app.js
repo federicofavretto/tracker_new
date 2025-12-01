@@ -406,6 +406,79 @@ app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
 });
 
+//controllo spazio nel DB
+app.get("/admin/db-usage", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT pg_database_size(current_database()) AS size_bytes"
+    );
+    const usedBytes = Number(rows[0].size_bytes);
+    const limitBytes = 1024 * 1024 * 1024; // 1GB piano free
+    const usedPercent = (usedBytes / limitBytes) * 100;
+
+    res.json({
+      ok: true,
+      usedBytes,
+      usedMB: usedBytes / (1024 * 1024),
+      usedPercent,
+    });
+  } catch (err) {
+    console.error("Error in /admin/db-usage", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+//esporta eventi in file esterno
+app.get("/admin/export-events", async (req, res) => {
+  try {
+    const days = parseInt(req.query.days, 10) || 30;
+
+    const { rows } = await pool.query(
+      `
+      SELECT
+        id,
+        created_at,
+        payload->>'type' AS type,
+        payload->>'sessionId' AS session_id,
+        payload->>'visitorId' AS visitor_id,
+        payload->>'path' AS path,
+        payload->>'referrer' AS referrer,
+        payload->>'utm_source' AS utm_source,
+        payload->>'utm_medium' AS utm_medium,
+        payload->>'utm_campaign' AS utm_campaign
+      FROM events
+      WHERE created_at >= NOW() - INTERVAL '${days} days'
+      ORDER BY created_at ASC
+      `
+    );
+
+    const header = Object.keys(rows[0] || {}).join(",") + "\n";
+    const lines = rows
+      .map(r =>
+        Object.values(r)
+          .map(v => {
+            if (v == null) return "";
+            const s = String(v).replace(/"/g, '""');
+            return `"${s}"`;
+          })
+          .join(",")
+      )
+      .join("\n");
+
+    const csv = header + lines;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="events_export_last_${days}_days.csv"`
+    );
+    res.send(csv);
+  } catch (err) {
+    console.error("Error in /admin/export-events", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ───────────────────────────────────────
 // 8. Avvio server
 // ───────────────────────────────────────
